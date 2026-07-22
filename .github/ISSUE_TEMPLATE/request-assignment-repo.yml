@@ -18,6 +18,26 @@ body:
       required: true
 
   - type: input
+    id: organization
+    attributes:
+      label: Organization
+      description: GitHub organization or owner where your repository should be created
+      placeholder: my-school-org
+    validations:
+      required: true
+
+  - type: dropdown
+    id: assignment
+    attributes:
+      label: Assignment
+      description: Choose the assignment track
+      options:
+        - final
+        - final-second
+    validations:
+      required: true
+
+  - type: input
     id: classroom
     attributes:
       label: Classroom
