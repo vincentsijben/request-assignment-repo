@@ -11,8 +11,8 @@ Students submit one Issue Form. A GitHub Action validates the request and create
   - access code (shared in Moodle)
   - repoName target format (`owner/prefix`)
   - organization/owner allowlist (optional)
-   - classroom format (optional regex)
-   - email format and domain (optional)
+  - classroom format (optional regex)
+  - email format and school domain (`@zuyd.nl` by default)
    - account age / request rate limits (anti-abuse)
 3. Workflow creates the target repo when missing.
 4. Workflow invites/adds the student GitHub account with push access.
@@ -57,7 +57,8 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
 - `TEMPLATE_REPO` (optional)
   - template repo name; if set, new repos are generated from template
 - `ALLOWED_EMAIL_DOMAIN` (optional)
-  - example: `zuyd.nl`
+  - default is `zuyd.nl`
+  - set this only if you want a different required domain
 - `ALLOWED_CLASSROOM_REGEX` (optional)
   - example: `^CMD1[A-C]$`
 - `MAX_REQUESTS_PER_DAY` (optional, default `3`)
@@ -67,7 +68,7 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
 
 GitHub Actions cannot reliably send custom email without external services.
 
-This setup instead posts a result comment and mentions `@<repo-owner>` in GitHub, which triggers GitHub notifications.
+This setup posts a result comment and mentions `@<repo-owner>` in GitHub for both successful and rejected requests, which triggers GitHub notifications.
 
 ## Moodle link
 
@@ -84,9 +85,10 @@ You can prefill fields in Moodle by appending query parameters that match form I
 - Only processes issues with `repo-request` label (from the form)
 - Rejects bot accounts
 - Access code check against secret
+- Full name check (must include at least first and last name)
 - repoName format validation (`owner/prefix`)
 - Organization/owner allowlist validation
-- Basic email and classroom validation
+- School email check (`@zuyd.nl` by default) and classroom validation
 - Daily request limit per GitHub account
 - Minimum account age check
 - Redacts access code from stored issue body

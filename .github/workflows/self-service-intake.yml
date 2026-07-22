@@ -2,7 +2,7 @@ name: Self-Service Repo Intake
 
 on:
   issues:
-    types: [opened, reopened]
+    types: [opened, reopened, labeled]
 
 permissions:
   contents: read
@@ -14,12 +14,13 @@ concurrency:
 
 jobs:
   process-request:
-    if: contains(github.event.issue.labels.*.name, 'repo-request')
+    if: contains(github.event.issue.labels.*.name, 'repo-request') || (github.event.action == 'labeled' && github.event.label.name == 'repo-request')
     runs-on: ubuntu-latest
     steps:
       - name: Validate request and provision repo
         uses: actions/github-script@v7
         env:
+          TARGET_OWNER: ${{ vars.TARGET_OWNER }}
           ALLOWED_TARGET_OWNERS: ${{ vars.ALLOWED_TARGET_OWNERS }}
           REPO_VISIBILITY: ${{ vars.REPO_VISIBILITY }}
           TEMPLATE_OWNER: ${{ vars.TEMPLATE_OWNER }}
@@ -40,11 +41,12 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
+            const TARGET_OWNER_DEFAULT = (process.env.TARGET_OWNER || "").trim();
             const ALLOWED_TARGET_OWNERS = (process.env.ALLOWED_TARGET_OWNERS || "").trim();
             const REPO_VISIBILITY = (process.env.REPO_VISIBILITY || "private").trim().toLowerCase();
             const TEMPLATE_OWNER = (process.env.TEMPLATE_OWNER || "").trim();
             const TEMPLATE_REPO = (process.env.TEMPLATE_REPO || "").trim();
-            const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || "").trim().toLowerCase();
+            const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || "zuyd.nl").trim().toLowerCase();
             const ALLOWED_CLASSROOM_REGEX = (process.env.ALLOWED_CLASSROOM_REGEX || "").trim();
             const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "3");
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
@@ -81,6 +83,12 @@ jobs:
                 issue_number: issueNumber,
                 body,
               });
+            }
+
+            async function rejectAndClose(message, labels = ["request-rejected"]) {
+              await addLabels(labels);
+              await issueComment([message, "", `@${OWNER_TO_NOTIFY} action completed.`].join("\n"));
+              await closeIssue();
             }
 
             async function addLabels(labels) {
@@ -122,9 +130,7 @@ jobs:
             }
 
             if (!actor || actor.endsWith("[bot]")) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: bot or invalid GitHub account.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: bot or invalid GitHub account.");
               return;
             }
 
@@ -144,13 +150,16 @@ jobs:
             const fullName = getField("Full name");
             const email = getField("Email").toLowerCase();
 
+            if (fullName.split(/\s+/).filter(Boolean).length < 2) {
+              await rejectAndClose("Request rejected: please enter your full name (first and last name).");
+              return;
+            }
+
             await redactAccessCodeInIssueBody(accessCode);
 
             const parts = repoTarget.split("/").map((v) => v.trim()).filter(Boolean);
             if (parts.length !== 2) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: repoName must be in owner/prefix format.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: repoName must be in owner/prefix format.");
               return;
             }
 
@@ -159,25 +168,19 @@ jobs:
 
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRe.test(email)) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: invalid email format.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: invalid email format.");
               return;
             }
 
             const ownerRe = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$/;
             if (!targetOwner || !ownerRe.test(targetOwner)) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: invalid organization/owner format.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: invalid organization/owner format.");
               return;
             }
 
             const prefixRe = /^[a-z0-9._-]{2,80}$/;
             if (!selectedPrefix || !prefixRe.test(selectedPrefix)) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: invalid repository prefix format in repoName.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: invalid repository prefix format in repoName.");
               return;
             }
 
@@ -187,22 +190,16 @@ jobs:
                 .map((v) => v.trim().toLowerCase())
                 .filter(Boolean);
               if (!allowedOwners.includes(targetOwner.toLowerCase())) {
-                await addLabels(["request-rejected"]);
-                await issueComment("Request rejected: organization/owner is not allowed.");
-                await closeIssue();
+                await rejectAndClose("Request rejected: organization/owner is not allowed.");
                 return;
               }
             } else if (TARGET_OWNER_DEFAULT && targetOwner.toLowerCase() !== TARGET_OWNER_DEFAULT.toLowerCase()) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: organization/owner does not match configured target.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: organization/owner does not match configured target.");
               return;
             }
 
             if (ALLOWED_EMAIL_DOMAIN && !email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) {
-              await addLabels(["request-rejected"]);
-              await issueComment(`Request rejected: email must end with @${ALLOWED_EMAIL_DOMAIN}.`);
-              await closeIssue();
+              await rejectAndClose(`Request rejected: this is not your school address. Please use your @${ALLOWED_EMAIL_DOMAIN} email address.`);
               return;
             }
 
@@ -210,9 +207,7 @@ jobs:
               try {
                 const classroomRe = new RegExp(ALLOWED_CLASSROOM_REGEX);
                 if (!classroomRe.test(classroom)) {
-                  await addLabels(["request-rejected"]);
-                  await issueComment("Request rejected: classroom format is not allowed.");
-                  await closeIssue();
+                  await rejectAndClose("Request rejected: classroom format is not allowed.");
                   return;
                 }
               } catch {
@@ -222,9 +217,7 @@ jobs:
             }
 
             if (accessCode !== REQUEST_CODE) {
-              await addLabels(["request-rejected", "invalid-code"]);
-              await issueComment("Request rejected: invalid access code.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: invalid access code.", ["request-rejected", "invalid-code"]);
               return;
             }
 
@@ -239,9 +232,7 @@ jobs:
               per_page: 100,
             });
             if (sameUserIssues.length > Math.max(1, MAX_REQUESTS_PER_DAY)) {
-              await addLabels(["request-rejected", "rate-limited"]);
-              await issueComment("Request rejected: too many requests in the last 24 hours.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: too many requests in the last 24 hours.", ["request-rejected", "rate-limited"]);
               return;
             }
 
@@ -250,17 +241,13 @@ jobs:
             const createdAt = new Date(user.data.created_at).getTime();
             const ageDays = Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000));
             if (ageDays < Math.max(0, MIN_ACCOUNT_AGE_DAYS)) {
-              await addLabels(["request-rejected", "new-account"]);
-              await issueComment(`Request rejected: account too new (${ageDays} days).`);
-              await closeIssue();
+              await rejectAndClose(`Request rejected: account too new (${ageDays} days).`, ["request-rejected", "new-account"]);
               return;
             }
 
             const handlePart = sanitizeRepoPart(actor);
             if (!handlePart) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: could not derive repository name from GitHub username.");
-              await closeIssue();
+              await rejectAndClose("Request rejected: could not derive repository name from GitHub username.");
               return;
             }
 
