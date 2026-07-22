@@ -81,6 +81,8 @@ This setup posts a result comment and mentions `@<repo-owner>` in GitHub for bot
 
 Optional: Gmail SMTP alert notifications can also be sent for each processed issue. The email includes submitted data, the issue reply text, and a direct issue URL.
 
+If `GMAIL_SMTP_USERNAME`, `GMAIL_SMTP_APP_PASSWORD`, or `GMAIL_TO` is missing or empty, the Gmail alert steps are skipped automatically.
+
 ### Gmail SMTP setup
 
 1. Create an App Password (do not use your normal Gmail password).
