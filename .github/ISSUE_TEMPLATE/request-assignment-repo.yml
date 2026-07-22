@@ -3,6 +3,8 @@ description: Request a private assignment repository
 title: "request assignment repo"
 labels:
   - repo-request
+assignees:
+  - vincentsijben
 body:
   - type: markdown
     attributes:
