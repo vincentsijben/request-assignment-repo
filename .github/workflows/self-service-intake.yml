@@ -421,15 +421,19 @@ jobs:
             await closeIssue();
 
       - name: Send Gmail alert
-        if: always() && steps.intake.outputs.send_alert == 'true' && secrets.GMAIL_SMTP_USERNAME != '' && secrets.GMAIL_SMTP_APP_PASSWORD != '' && secrets.GMAIL_TO != ''
+        if: always() && steps.intake.outputs.send_alert == 'true' && env.GMAIL_SMTP_USERNAME != '' && env.GMAIL_SMTP_APP_PASSWORD != '' && env.GMAIL_TO != ''
         uses: dawidd6/action-send-mail@v3
+        env:
+          GMAIL_SMTP_USERNAME: ${{ secrets.GMAIL_SMTP_USERNAME }}
+          GMAIL_SMTP_APP_PASSWORD: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
+          GMAIL_TO: ${{ secrets.GMAIL_TO }}
         with:
           server_address: smtp.gmail.com
           server_port: 465
           secure: true
-          username: ${{ secrets.GMAIL_SMTP_USERNAME }}
-          password: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
+          username: ${{ env.GMAIL_SMTP_USERNAME }}
+          password: ${{ env.GMAIL_SMTP_APP_PASSWORD }}
           subject: ${{ steps.intake.outputs.alert_subject }}
-          to: ${{ secrets.GMAIL_TO }}
-          from: Repo Intake Bot <${{ secrets.GMAIL_SMTP_USERNAME }}>
+          to: ${{ env.GMAIL_TO }}
+          from: Repo Intake Bot <${{ env.GMAIL_SMTP_USERNAME }}>
           body: ${{ steps.intake.outputs.alert_body }}
