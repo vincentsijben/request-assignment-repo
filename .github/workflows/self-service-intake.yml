@@ -20,6 +20,7 @@ jobs:
       - name: Validate request and provision repo
         uses: actions/github-script@v7
         env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           TARGET_OWNER: ${{ vars.TARGET_OWNER }}
           ALLOWED_TARGET_OWNERS: ${{ vars.ALLOWED_TARGET_OWNERS }}
           REPO_VISIBILITY: ${{ vars.REPO_VISIBILITY }}
@@ -32,7 +33,7 @@ jobs:
           REQUEST_CODE: ${{ secrets.REQUEST_CODE }}
           OWNER_TO_NOTIFY: ${{ github.repository_owner }}
         with:
-          github-token: ${{ secrets.ADMIN_TOKEN }}
+          github-token: ${{ github.token }}
           script: |
             const issue = context.payload.issue;
             const issueNumber = issue.number;
@@ -41,6 +42,7 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
+            const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
             const TARGET_OWNER_DEFAULT = (process.env.TARGET_OWNER || "").trim();
             const ALLOWED_TARGET_OWNERS = (process.env.ALLOWED_TARGET_OWNERS || "").trim();
             const REPO_VISIBILITY = (process.env.REPO_VISIBILITY || "private").trim().toLowerCase();
@@ -52,6 +54,7 @@ jobs:
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
+            const adminGithub = ADMIN_TOKEN ? getOctokit(ADMIN_TOKEN) : null;
 
             function sanitizeRepoPart(value) {
               return String(value || "")
@@ -221,6 +224,11 @@ jobs:
               return;
             }
 
+            if (!adminGithub) {
+              await rejectAndClose("Request rejected: repository provisioning is not configured correctly. ADMIN_TOKEN is missing.", ["request-rejected", "configuration-error"]);
+              return;
+            }
+
             // Basic rate-limit per account per 24h.
             const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             const sameUserIssues = await github.paginate(github.rest.issues.listForRepo, {
@@ -255,7 +263,7 @@ jobs:
 
             let exists = true;
             try {
-              await github.rest.repos.get({ owner: targetOwner, repo: targetRepoName });
+              await adminGithub.rest.repos.get({ owner: targetOwner, repo: targetRepoName });
             } catch (error) {
               if (error.status === 404) {
                 exists = false;
@@ -272,7 +280,7 @@ jobs:
 
               if (TEMPLATE_REPO) {
                 const templateOwner = TEMPLATE_OWNER || targetOwner;
-                await github.rest.repos.createUsingTemplate({
+                await adminGithub.rest.repos.createUsingTemplate({
                   template_owner: templateOwner,
                   template_repo: TEMPLATE_REPO,
                   owner: targetOwner,
@@ -283,14 +291,14 @@ jobs:
                 });
               } else {
                 if (targetOwner.toLowerCase() === user.data.login.toLowerCase()) {
-                  await github.rest.repos.createForAuthenticatedUser({
+                  await adminGithub.rest.repos.createForAuthenticatedUser({
                     name: targetRepoName,
                     private: privateRepo,
                     auto_init: true,
                     description,
                   });
                 } else {
-                  await github.rest.repos.createInOrg({
+                  await adminGithub.rest.repos.createInOrg({
                     org: targetOwner,
                     name: targetRepoName,
                     private: privateRepo,
@@ -301,7 +309,7 @@ jobs:
             }
 
             // Ensure student has push access.
-            await github.rest.repos.addCollaborator({
+            await adminGithub.rest.repos.addCollaborator({
               owner: targetOwner,
               repo: targetRepoName,
               username: actor,
