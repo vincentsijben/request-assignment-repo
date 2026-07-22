@@ -54,6 +54,7 @@ jobs:
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
+            const { getOctokit } = require("@actions/github");
             const adminGithub = ADMIN_TOKEN ? getOctokit(ADMIN_TOKEN) : null;
 
             function sanitizeRepoPart(value) {
