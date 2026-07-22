@@ -104,7 +104,7 @@ Share this URL in Moodle:
 
 You can prefill fields in Moodle by appending query parameters that match form IDs. Example:
 
-`https://github.com/<your-user>/request-assignment-repo/issues/new?template=request-assignment-repo.yml&classroom=CMD1A&repo_name=mia-mmt1-2627%2Ffinal-`
+`https://github.com/<your-user>/request-assignment-repo/issues/new?template=request-assignment-repo.yml&classroom=CMD1A&repository=mia-mmt1-2627%2Ffinal`
 
 ## Abuse protection included
 

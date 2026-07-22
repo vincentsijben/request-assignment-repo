@@ -47,7 +47,7 @@ body:
       required: true
 
   - type: input
-    id: repo_name
+    id: repository
     attributes:
       label: Repository
       description: Target as owner/prefix, for example mia-mmt4-2526/final or mia-mmt4-2526/final-
