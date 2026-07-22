@@ -59,6 +59,10 @@ jobs:
             const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "10");
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
+            const VALID_REQUEST_CODES = REQUEST_CODE
+              .split(",")
+              .map((value) => value.trim())
+              .filter(Boolean);
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
             const REDACTED_ACCESS_CODE = "[REDACTED]";
 
@@ -211,7 +215,7 @@ jobs:
             classroom = getField("Classroom");
             repoTarget = getField("repoName");
 
-            if (!REQUEST_CODE) {
+            if (!VALID_REQUEST_CODES.length) {
               failAndNotify("Missing secret REQUEST_CODE.");
               return;
             }
@@ -234,7 +238,9 @@ jobs:
             }
 
             const enteredAccessCode = getField("Access code");
-            const accessCode = enteredAccessCode === REDACTED_ACCESS_CODE ? REQUEST_CODE : enteredAccessCode;
+            const accessCode = enteredAccessCode === REDACTED_ACCESS_CODE
+              ? REDACTED_ACCESS_CODE
+              : enteredAccessCode.trim();
 
             if (fullName.split(/\s+/).filter(Boolean).length < 2) {
               await rejectAndClose("Request rejected: please enter your full name (first and last name).");
@@ -300,7 +306,7 @@ jobs:
               }
             }
 
-            if (accessCode !== REQUEST_CODE) {
+            if (accessCode !== REDACTED_ACCESS_CODE && !VALID_REQUEST_CODES.includes(accessCode)) {
               await rejectAndClose("Request rejected: invalid access code.", ["request-rejected", "invalid-code"]);
               return;
             }

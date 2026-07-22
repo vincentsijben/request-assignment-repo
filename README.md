@@ -46,6 +46,7 @@ Set this in Settings -> Secrets and variables -> Actions -> Secrets:
 
 - `REQUEST_CODE`
   - the shared Moodle code used for request validation
+  - supports multiple values as a comma-separated list (for example `spring2026,fall2026`)
 
 ### 2. Repository variables
 
