@@ -29,7 +29,6 @@ jobs:
           ALLOWED_EMAIL_DOMAIN: ${{ vars.ALLOWED_EMAIL_DOMAIN }}
           ALLOWED_CLASSROOM_REGEX: ${{ vars.ALLOWED_CLASSROOM_REGEX }}
           MAX_REQUESTS_PER_DAY: ${{ vars.MAX_REQUESTS_PER_DAY }}
-          MAX_REQUESTS_PER_WEEK: ${{ vars.MAX_REQUESTS_PER_WEEK }}
           MIN_ACCOUNT_AGE_DAYS: ${{ vars.MIN_ACCOUNT_AGE_DAYS }}
           REQUEST_CODE: ${{ secrets.REQUEST_CODE }}
           OWNER_TO_NOTIFY: ${{ github.repository_owner }}
@@ -52,7 +51,6 @@ jobs:
             const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || "zuyd.nl").trim().toLowerCase();
             const ALLOWED_CLASSROOM_REGEX = (process.env.ALLOWED_CLASSROOM_REGEX || "").trim();
             const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "10");
-            const MAX_REQUESTS_PER_WEEK = Number(process.env.MAX_REQUESTS_PER_WEEK || "3");
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
@@ -283,27 +281,6 @@ jobs:
             uniqueIssueNumbers.delete(issueNumber);
             if (uniqueIssueNumbers.size >= Math.max(1, MAX_REQUESTS_PER_DAY)) {
               await rejectAndClose("Request rejected: too many requests in the last 24 hours.", ["request-rejected", "rate-limited"]);
-              return;
-            }
-
-            // Weekly rate-limit per account.
-            const weekSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-            const sameUserIssuesInWeek = await github.paginate(github.rest.issues.listForRepo, {
-              owner: repoOwner,
-              repo: repoName,
-              creator: actor,
-              state: "all",
-              since: weekSince,
-              per_page: 100,
-            });
-            const requestIssuesInWeek = sameUserIssuesInWeek.filter(isRepoRequestIssue);
-            const uniqueIssueNumbersInWeek = new Set(requestIssuesInWeek.map((item) => item.number));
-            uniqueIssueNumbersInWeek.delete(issueNumber);
-            if (uniqueIssueNumbersInWeek.size >= Math.max(1, MAX_REQUESTS_PER_WEEK)) {
-              await rejectAndClose(
-                `Request rejected: too many requests in the last 7 days (${Math.max(1, MAX_REQUESTS_PER_WEEK)} max).`,
-                ["request-rejected", "weekly-rate-limited"]
-              );
               return;
             }
 

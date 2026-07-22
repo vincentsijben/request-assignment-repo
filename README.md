@@ -71,7 +71,6 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
 - `ALLOWED_CLASSROOM_REGEX` (optional)
   - example: `^CMD1[A-C]$`
 - `MAX_REQUESTS_PER_DAY` (optional, default `10`)
-- `MAX_REQUESTS_PER_WEEK` (optional, default `3`)
 - `MIN_ACCOUNT_AGE_DAYS` (optional, default `3`)
 
 ## Notifications
@@ -101,7 +100,6 @@ You can prefill fields in Moodle by appending query parameters that match form I
 - Template repository existence and access check
 - School email check (`@zuyd.nl` by default) and classroom validation
 - Daily request limit per GitHub account
-- Weekly request limit per GitHub account
 - Minimum account age check
 - Redacts access code from stored issue body
 
