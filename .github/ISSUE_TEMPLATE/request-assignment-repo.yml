@@ -50,7 +50,7 @@ body:
     id: repository
     attributes:
       label: Repository
-      description: Target as owner/prefix, for example mia-mmt4-2526/final or mia-mmt4-2526/final-
+      description: Target as organisation/prefix, for example mia-mmt4-2526/final or mia-mmt1-2627/final-second
       placeholder: mia-mmt4-2526/final
     validations:
       required: true

@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   process-request:
-    if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### Repository') || contains(github.event.issue.body, '### repoName')
+    if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### Repository')
     runs-on: ubuntu-latest
     env:
       GMAIL_SMTP_USERNAME: ${{ secrets.GMAIL_SMTP_USERNAME }}
@@ -46,7 +46,7 @@ jobs:
             const issueUrl = issue.html_url || `https://github.com/${context.repo.owner}/${context.repo.repo}/issues/${issue.number}`;
             const actor = (issue.user && issue.user.login) ? issue.user.login : "";
             const repoOwner = context.repo.owner;
-            const repoName = context.repo.repo;
+            const intakeRepo = context.repo.repo;
 
             const ADMIN_TOKEN = (process.env.ADMIN_TOKEN || "").trim();
             const TARGET_OWNER_DEFAULT = (process.env.TARGET_OWNER || "").trim();
@@ -76,7 +76,7 @@ jobs:
             function setAlertOutputs() {
               const subject = `[Repo Intake] ${alertStatus} issue #${issueNumber}`;
               const body = [
-                `Repository: ${repoOwner}/${repoName}`,
+                `Repository: ${repoOwner}/${intakeRepo}`,
                 `Issue: #${issueNumber}`,
                 `Issue URL: ${issueUrl}`,
                 `Requester: @${actor || "unknown"}`,
@@ -139,7 +139,7 @@ jobs:
             async function issueComment(body) {
               await github.rest.issues.createComment({
                 owner: repoOwner,
-                repo: repoName,
+                repo: intakeRepo,
                 issue_number: issueNumber,
                 body,
               });
@@ -149,7 +149,7 @@ jobs:
               try {
                 await github.rest.issues.addAssignees({
                   owner: repoOwner,
-                  repo: repoName,
+                  repo: intakeRepo,
                   issue_number: issueNumber,
                   assignees: [OWNER_TO_NOTIFY],
                 });
@@ -179,7 +179,7 @@ jobs:
               if (!labels.length) return;
               await github.rest.issues.addLabels({
                 owner: repoOwner,
-                repo: repoName,
+                repo: intakeRepo,
                 issue_number: issueNumber,
                 labels,
               });
@@ -188,7 +188,7 @@ jobs:
             async function closeIssue() {
               await github.rest.issues.update({
                 owner: repoOwner,
-                repo: repoName,
+                repo: intakeRepo,
                 issue_number: issueNumber,
                 state: "closed",
               });
@@ -203,7 +203,7 @@ jobs:
               if (updated !== currentIssueBody) {
                 await github.rest.issues.update({
                   owner: repoOwner,
-                  repo: repoName,
+                  repo: intakeRepo,
                   issue_number: issueNumber,
                   body: updated,
                 });
@@ -214,7 +214,7 @@ jobs:
             fullName = getField("Full name");
             email = getField("Email").toLowerCase();
             classroom = getField("Classroom");
-            repoTarget = getField("Repository") || getField("repoName");
+            repoTarget = getField("Repository");
 
             if (!VALID_REQUEST_CODES.length) {
               failAndNotify("Missing secret REQUEST_CODE.");
@@ -232,7 +232,7 @@ jobs:
             if ((issue.title || "") !== desiredTitle) {
               await github.rest.issues.update({
                 owner: repoOwner,
-                repo: repoName,
+                repo: intakeRepo,
                 issue_number: issueNumber,
                 title: desiredTitle,
               });
@@ -334,7 +334,7 @@ jobs:
             const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
             const sameUserIssues = await github.paginate(github.rest.issues.listForRepo, {
               owner: repoOwner,
-              repo: repoName,
+              repo: intakeRepo,
               creator: actor,
               state: "all",
               since,
