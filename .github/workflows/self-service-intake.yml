@@ -1,0 +1,299 @@
+name: Self-Service Repo Intake
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: intake-${{ github.event.issue.id }}
+  cancel-in-progress: false
+
+jobs:
+  process-request:
+    if: contains(github.event.issue.labels.*.name, 'repo-request')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate request and provision repo
+        uses: actions/github-script@v7
+        env:
+          TARGET_OWNER: ${{ vars.TARGET_OWNER }}
+          REPO_PREFIX: ${{ vars.REPO_PREFIX }}
+          REPO_VISIBILITY: ${{ vars.REPO_VISIBILITY }}
+          TEMPLATE_OWNER: ${{ vars.TEMPLATE_OWNER }}
+          TEMPLATE_REPO: ${{ vars.TEMPLATE_REPO }}
+          ALLOWED_EMAIL_DOMAIN: ${{ vars.ALLOWED_EMAIL_DOMAIN }}
+          ALLOWED_CLASSROOM_REGEX: ${{ vars.ALLOWED_CLASSROOM_REGEX }}
+          MAX_REQUESTS_PER_DAY: ${{ vars.MAX_REQUESTS_PER_DAY }}
+          MIN_ACCOUNT_AGE_DAYS: ${{ vars.MIN_ACCOUNT_AGE_DAYS }}
+          REQUEST_CODE: ${{ secrets.REQUEST_CODE }}
+          OWNER_TO_NOTIFY: ${{ github.repository_owner }}
+        with:
+          github-token: ${{ secrets.ADMIN_TOKEN }}
+          script: |
+            const issue = context.payload.issue;
+            const issueNumber = issue.number;
+            const issueBody = issue.body || "";
+            const actor = (issue.user && issue.user.login) ? issue.user.login : "";
+            const repoOwner = context.repo.owner;
+            const repoName = context.repo.repo;
+
+            const TARGET_OWNER = (process.env.TARGET_OWNER || "").trim();
+            const REPO_PREFIX = (process.env.REPO_PREFIX || "").trim();
+            const REPO_VISIBILITY = (process.env.REPO_VISIBILITY || "private").trim().toLowerCase();
+            const TEMPLATE_OWNER = (process.env.TEMPLATE_OWNER || "").trim();
+            const TEMPLATE_REPO = (process.env.TEMPLATE_REPO || "").trim();
+            const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || "").trim().toLowerCase();
+            const ALLOWED_CLASSROOM_REGEX = (process.env.ALLOWED_CLASSROOM_REGEX || "").trim();
+            const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "3");
+            const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
+            const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
+            const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
+
+            function sanitizeRepoPart(value) {
+              return String(value || "")
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^\p{L}\p{N}._-]+/gu, "-")
+                .replace(/-+/g, "-")
+                .replace(/^-+|-+$/g, "");
+            }
+
+            function escapeRegExp(value) {
+              return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            }
+
+            function getField(label) {
+              const re = new RegExp(`###\\s*${escapeRegExp(label)}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s|$)`, "i");
+              const match = issueBody.match(re);
+              if (!match) {
+                return "";
+              }
+              return String(match[1] || "").trim();
+            }
+
+            async function issueComment(body) {
+              await github.rest.issues.createComment({
+                owner: repoOwner,
+                repo: repoName,
+                issue_number: issueNumber,
+                body,
+              });
+            }
+
+            async function addLabels(labels) {
+              if (!labels.length) return;
+              await github.rest.issues.addLabels({
+                owner: repoOwner,
+                repo: repoName,
+                issue_number: issueNumber,
+                labels,
+              });
+            }
+
+            async function closeIssue() {
+              await github.rest.issues.update({
+                owner: repoOwner,
+                repo: repoName,
+                issue_number: issueNumber,
+                state: "closed",
+              });
+            }
+
+            async function redactAccessCodeInIssueBody(accessCode) {
+              if (!accessCode) return;
+              const escaped = escapeRegExp(accessCode);
+              const updated = issueBody.replace(new RegExp(escaped, "g"), "[REDACTED]");
+              if (updated !== issueBody) {
+                await github.rest.issues.update({
+                  owner: repoOwner,
+                  repo: repoName,
+                  issue_number: issueNumber,
+                  body: updated,
+                });
+              }
+            }
+
+            function invalid(msg, labels = ["request-rejected"]) {
+              return { ok: false, msg, labels };
+            }
+
+            if (!TARGET_OWNER) {
+              core.setFailed("Missing variable TARGET_OWNER.");
+              return;
+            }
+
+            if (!REPO_PREFIX) {
+              core.setFailed("Missing variable REPO_PREFIX.");
+              return;
+            }
+
+            if (!REQUEST_CODE) {
+              core.setFailed("Missing secret REQUEST_CODE.");
+              return;
+            }
+
+            const accessCode = getField("Access code");
+            const classroom = getField("Classroom");
+            const fullName = getField("Full name");
+            const email = getField("Email").toLowerCase();
+
+            await redactAccessCodeInIssueBody(accessCode);
+
+            if (!actor || actor.endsWith("[bot]")) {
+              await addLabels(["request-rejected"]);
+              await issueComment("Request rejected: bot or invalid GitHub account.");
+              await closeIssue();
+              return;
+            }
+
+            const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRe.test(email)) {
+              await addLabels(["request-rejected"]);
+              await issueComment("Request rejected: invalid email format.");
+              await closeIssue();
+              return;
+            }
+
+            if (ALLOWED_EMAIL_DOMAIN && !email.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) {
+              await addLabels(["request-rejected"]);
+              await issueComment(`Request rejected: email must end with @${ALLOWED_EMAIL_DOMAIN}.`);
+              await closeIssue();
+              return;
+            }
+
+            if (ALLOWED_CLASSROOM_REGEX) {
+              try {
+                const classroomRe = new RegExp(ALLOWED_CLASSROOM_REGEX);
+                if (!classroomRe.test(classroom)) {
+                  await addLabels(["request-rejected"]);
+                  await issueComment("Request rejected: classroom format is not allowed.");
+                  await closeIssue();
+                  return;
+                }
+              } catch {
+                core.setFailed("Invalid ALLOWED_CLASSROOM_REGEX variable.");
+                return;
+              }
+            }
+
+            if (accessCode !== REQUEST_CODE) {
+              await addLabels(["request-rejected", "invalid-code"]);
+              await issueComment("Request rejected: invalid access code.");
+              await closeIssue();
+              return;
+            }
+
+            // Basic rate-limit per account per 24h.
+            const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const sameUserIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: repoOwner,
+              repo: repoName,
+              creator: actor,
+              state: "all",
+              since,
+              per_page: 100,
+            });
+            if (sameUserIssues.length > Math.max(1, MAX_REQUESTS_PER_DAY)) {
+              await addLabels(["request-rejected", "rate-limited"]);
+              await issueComment("Request rejected: too many requests in the last 24 hours.");
+              await closeIssue();
+              return;
+            }
+
+            // Minimum account age check.
+            const user = await github.rest.users.getByUsername({ username: actor });
+            const createdAt = new Date(user.data.created_at).getTime();
+            const ageDays = Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000));
+            if (ageDays < Math.max(0, MIN_ACCOUNT_AGE_DAYS)) {
+              await addLabels(["request-rejected", "new-account"]);
+              await issueComment(`Request rejected: account too new (${ageDays} days).`);
+              await closeIssue();
+              return;
+            }
+
+            const handlePart = sanitizeRepoPart(actor);
+            if (!handlePart) {
+              await addLabels(["request-rejected"]);
+              await issueComment("Request rejected: could not derive repository name from GitHub username.");
+              await closeIssue();
+              return;
+            }
+
+            const targetRepoName = `${REPO_PREFIX}${handlePart}`;
+
+            let exists = true;
+            try {
+              await github.rest.repos.get({ owner: TARGET_OWNER, repo: targetRepoName });
+            } catch (error) {
+              if (error.status === 404) {
+                exists = false;
+              } else {
+                throw error;
+              }
+            }
+
+            let targetUrl = `https://github.com/${TARGET_OWNER}/${targetRepoName}`;
+
+            if (!exists) {
+              const description = `Assignment repository for ${fullName} (${classroom})`;
+              const privateRepo = REPO_VISIBILITY !== "public";
+
+              if (TEMPLATE_REPO) {
+                const templateOwner = TEMPLATE_OWNER || TARGET_OWNER;
+                await github.rest.repos.createUsingTemplate({
+                  template_owner: templateOwner,
+                  template_repo: TEMPLATE_REPO,
+                  owner: TARGET_OWNER,
+                  name: targetRepoName,
+                  private: privateRepo,
+                  include_all_branches: false,
+                  description,
+                });
+              } else {
+                if (TARGET_OWNER.toLowerCase() === user.data.login.toLowerCase()) {
+                  await github.rest.repos.createForAuthenticatedUser({
+                    name: targetRepoName,
+                    private: privateRepo,
+                    auto_init: true,
+                    description,
+                  });
+                } else {
+                  await github.rest.repos.createInOrg({
+                    org: TARGET_OWNER,
+                    name: targetRepoName,
+                    private: privateRepo,
+                    description,
+                  });
+                }
+              }
+            }
+
+            // Ensure student has push access.
+            await github.rest.repos.addCollaborator({
+              owner: TARGET_OWNER,
+              repo: targetRepoName,
+              username: actor,
+              permission: "push",
+            });
+
+            const statusLine = exists ? "Repository already existed. Access was refreshed." : "Repository created and access granted.";
+            const body = [
+              `Request processed for @${actor}.`,
+              "",
+              `- ${statusLine}`,
+              `- Repository: ${targetUrl}`,
+              `- Classroom: ${classroom}`,
+              `- Name: ${fullName}`,
+              `- Email: ${email}`,
+              "",
+              `@${OWNER_TO_NOTIFY} action completed.`,
+            ].join("\n");
+
+            await addLabels(["request-processed"]);
+            await issueComment(body);
+            await closeIssue();

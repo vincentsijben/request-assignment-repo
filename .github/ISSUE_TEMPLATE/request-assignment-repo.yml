@@ -1,0 +1,45 @@
+name: Request Assignment Repository
+description: Request a private assignment repository
+labels:
+  - repo-request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fill in all fields. Your GitHub username is detected automatically from your account.
+
+  - type: input
+    id: access_code
+    attributes:
+      label: Access code
+      description: The current request code from Moodle
+      placeholder: Enter code
+    validations:
+      required: true
+
+  - type: input
+    id: classroom
+    attributes:
+      label: Classroom
+      description: Your classroom (for example CMD1A)
+      placeholder: CMD1A
+    validations:
+      required: true
+
+  - type: input
+    id: full_name
+    attributes:
+      label: Full name
+      description: First name and last name
+      placeholder: Jane Doe
+    validations:
+      required: true
+
+  - type: input
+    id: email
+    attributes:
+      label: Email
+      description: School email address
+      placeholder: student@school.edu
+    validations:
+      required: true
