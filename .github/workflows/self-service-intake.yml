@@ -355,8 +355,12 @@ jobs:
               permission: "push",
             });
 
+            const statusLine = exists
+              ? "Repository already existed. Access granted."
+              : "Repository created and access granted.";
+
             const body = [
-              "Repository created and access granted.",
+              statusLine,
               "",
               `${targetUrl}`,
             ].join("\n");
