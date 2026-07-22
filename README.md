@@ -11,10 +11,6 @@ This repository helps students request their assignment repository in one place.
 
 If your request is rejected, follow the retry instructions in that issue comment and submit again.
 
-## For instructors
-
-The full technical setup, secrets/variables, validation rules, and operations notes are in [TECHNICAL-SETUP.md](TECHNICAL-SETUP.md).
-
 ## What this automation does
 
 1. Validates the request.

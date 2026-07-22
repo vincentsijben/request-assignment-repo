@@ -9,8 +9,7 @@ This document contains the full instructor/admin configuration for the self-serv
    - access code (shared in Moodle)
    - Repository target format (`owner/prefix`)
    - organization/owner allowlist (optional)
-   - classroom format (optional regex)
-   - email format and school domain (`@zuyd.nl` by default)
+  - email format
    - account age / request rate limits (anti-abuse)
 3. Workflow creates the target repo from template `<owner>/<prefix>-startercode` when missing.
 4. Workflow invites/adds the student GitHub account with maintain access.
@@ -56,19 +55,6 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
 - `ALLOWED_TARGET_OWNERS` (optional, recommended)
   - comma- or newline-separated list of allowed owners/orgs in `Repository`
   - example: `semester-1-org,semester-2-org,instructor-account`
-- `REPO_VISIBILITY` (optional)
-  - `private` (default) or `public`
-- `TEMPLATE_OWNER` (optional)
-  - override template owner
-  - default: same owner as `Repository`
-- `TEMPLATE_REPO` (optional)
-  - override template repo name
-  - default: `<prefix>-startercode` derived from `Repository`
-- `ALLOWED_EMAIL_DOMAIN` (optional)
-  - default is `zuyd.nl`
-  - set this only if you want a different required domain
-- `ALLOWED_CLASSROOM_REGEX` (optional)
-  - example: `^CMD1[A-C]$`
 - `MAX_REQUESTS_PER_DAY` (optional, default `10`)
 - `MIN_ACCOUNT_AGE_DAYS` (optional, default `3`)
 
@@ -90,19 +76,19 @@ If `GMAIL_SMTP_USERNAME`, `GMAIL_SMTP_APP_PASSWORD`, or `GMAIL_TO` is missing or
 4. Create a new app password (name it something like `GitHub Actions Intake`).
 5. Copy the 16-character password once. Save it temporarily; Google will not show it again.
 6. Add GitHub repository secrets. In your repo, open Settings -> Secrets and variables -> Actions -> New repository secret, then add:
-7. `GMAIL_SMTP_USERNAME` = `your-gmail@example.com`
+7. `GMAIL_SMTP_USERNAME` = your Gmail address
 8. `GMAIL_SMTP_APP_PASSWORD` = the 16-char app password from Google
-9. `GMAIL_TO` = `alerts@example.com`
+9. `GMAIL_TO` = destination email address for alerts
 
 ## Moodle link
 
 Share this URL in Moodle:
 
-`https://github.com/<your-user>/request-assignment-repo/issues/new?template=request-assignment-repo.yml`
+<https://github.com/vincentsijben/request-assignment-repo/issues/new?template=request-assignment-repo.yml>
 
 You can prefill fields in Moodle by appending query parameters that match form IDs. Example:
 
-`https://github.com/<your-user>/request-assignment-repo/issues/new?template=request-assignment-repo.yml&classroom=CMD1A&repository=mia-mmt1-2627%2Ffinal`
+[Open prefilled request form](https://github.com/vincentsijben/request-assignment-repo/issues/new?template=request-assignment-repo.yml&repository=mia-mmt1-2627%2Ffinal)
 
 ## Abuse protection included
 
@@ -113,7 +99,6 @@ You can prefill fields in Moodle by appending query parameters that match form I
 - Repository format validation (`owner/prefix`)
 - Organization/owner allowlist validation
 - Template repository existence and access check
-- School email check (`@zuyd.nl` by default) and classroom validation
 - Daily request limit per GitHub account
 - Minimum account age check
 - Redacts access code from stored issue body
