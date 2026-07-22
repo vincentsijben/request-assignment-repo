@@ -75,7 +75,7 @@ If `GMAIL_SMTP_USERNAME`, `GMAIL_SMTP_APP_PASSWORD`, or `GMAIL_TO` is missing or
 
 Share this URL in Moodle:
 
-'https://github.com/vincentsijben/request-assignment-repo/issues/new?template=request-assignment-repo.yml'
+`https://github.com/vincentsijben/request-assignment-repo/issues/new?template=request-assignment-repo.yml`
 
 You can prefill fields in Moodle by appending query parameters that match form IDs. Example:
 
