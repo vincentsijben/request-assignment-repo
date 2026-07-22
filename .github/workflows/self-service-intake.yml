@@ -156,7 +156,14 @@ jobs:
 
             async function rejectAndClose(message, labels = ["request-rejected"]) {
               await addLabels(labels);
-              const replyBody = [message, "", `@${OWNER_TO_NOTIFY} action completed.`].join("\n");
+              const retryHelp = [
+                "How to retry:",
+                "1. Open this issue and click Edit.",
+                "2. Update the incorrect values in the first form block (full name, email, classroom, repoName, or access code).",
+                "3. Save your changes.",
+                "4. Re-open this issue to run validation again.",
+              ].join("\n");
+              const replyBody = [message, "", retryHelp, "", `@${OWNER_TO_NOTIFY} action completed.`].join("\n");
               await issueComment(replyBody);
               alertStatus = "Rejected";
               alertReply = replyBody;
