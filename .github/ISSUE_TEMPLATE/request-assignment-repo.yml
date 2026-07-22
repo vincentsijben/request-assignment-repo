@@ -9,44 +9,6 @@ body:
         Fill in all fields. Your GitHub username is detected automatically from your account.
 
   - type: input
-    id: access_code
-    attributes:
-      label: Access code
-      description: The current request code from Moodle
-      placeholder: Enter code
-    validations:
-      required: true
-
-  - type: input
-    id: organization
-    attributes:
-      label: Organization
-      description: GitHub organization or owner where your repository should be created
-      placeholder: my-school-org
-    validations:
-      required: true
-
-  - type: dropdown
-    id: assignment
-    attributes:
-      label: Assignment
-      description: Choose the assignment track
-      options:
-        - final
-        - final-second
-    validations:
-      required: true
-
-  - type: input
-    id: classroom
-    attributes:
-      label: Classroom
-      description: Your classroom (for example CMD1A)
-      placeholder: CMD1A
-    validations:
-      required: true
-
-  - type: input
     id: full_name
     attributes:
       label: Full name
@@ -61,5 +23,32 @@ body:
       label: Email
       description: School email address
       placeholder: student@school.edu
+    validations:
+      required: true
+
+  - type: input
+    id: classroom
+    attributes:
+      label: Classroom
+      description: Your classroom (for example CMD1A)
+      placeholder: CMD1A
+    validations:
+      required: true
+
+  - type: input
+    id: repo_name
+    attributes:
+      label: repoName
+      description: Target as owner/prefix, for example mia-mmt1-2627/final-
+      placeholder: mia-mmt1-2627/final-
+    validations:
+      required: true
+
+  - type: input
+    id: access_code
+    attributes:
+      label: Access code
+      description: The current request code from Moodle
+      placeholder: Enter code
     validations:
       required: true

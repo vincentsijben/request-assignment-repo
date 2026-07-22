@@ -20,11 +20,7 @@ jobs:
       - name: Validate request and provision repo
         uses: actions/github-script@v7
         env:
-          TARGET_OWNER: ${{ vars.TARGET_OWNER }}
           ALLOWED_TARGET_OWNERS: ${{ vars.ALLOWED_TARGET_OWNERS }}
-          REPO_PREFIX: ${{ vars.REPO_PREFIX }}
-          REPO_PREFIX_FINAL: ${{ vars.REPO_PREFIX_FINAL }}
-          REPO_PREFIX_FINAL_SECOND: ${{ vars.REPO_PREFIX_FINAL_SECOND }}
           REPO_VISIBILITY: ${{ vars.REPO_VISIBILITY }}
           TEMPLATE_OWNER: ${{ vars.TEMPLATE_OWNER }}
           TEMPLATE_REPO: ${{ vars.TEMPLATE_REPO }}
@@ -44,11 +40,7 @@ jobs:
             const repoOwner = context.repo.owner;
             const repoName = context.repo.repo;
 
-            const TARGET_OWNER_DEFAULT = (process.env.TARGET_OWNER || "").trim();
             const ALLOWED_TARGET_OWNERS = (process.env.ALLOWED_TARGET_OWNERS || "").trim();
-            const REPO_PREFIX = (process.env.REPO_PREFIX || "").trim();
-            const REPO_PREFIX_FINAL = (process.env.REPO_PREFIX_FINAL || "").trim();
-            const REPO_PREFIX_FINAL_SECOND = (process.env.REPO_PREFIX_FINAL_SECOND || "").trim();
             const REPO_VISIBILITY = (process.env.REPO_VISIBILITY || "private").trim().toLowerCase();
             const TEMPLATE_OWNER = (process.env.TEMPLATE_OWNER || "").trim();
             const TEMPLATE_REPO = (process.env.TEMPLATE_REPO || "").trim();
@@ -124,35 +116,10 @@ jobs:
               }
             }
 
-            function invalid(msg, labels = ["request-rejected"]) {
-              return { ok: false, msg, labels };
-            }
-
-            if (!TARGET_OWNER_DEFAULT && !ALLOWED_TARGET_OWNERS) {
-              core.setFailed("Missing variables: set TARGET_OWNER or ALLOWED_TARGET_OWNERS.");
-              return;
-            }
-
-            if (!REPO_PREFIX && !REPO_PREFIX_FINAL && !REPO_PREFIX_FINAL_SECOND) {
-              core.setFailed("Missing repo prefix configuration: set REPO_PREFIX or assignment-specific prefixes.");
-              return;
-            }
-
             if (!REQUEST_CODE) {
               core.setFailed("Missing secret REQUEST_CODE.");
               return;
             }
-
-            const accessCode = getField("Access code");
-            const requestedOwner = getField("Organization");
-            const assignment = getField("Assignment").toLowerCase();
-            const classroom = getField("Classroom");
-            const fullName = getField("Full name");
-            const email = getField("Email").toLowerCase();
-
-            const targetOwner = requestedOwner || TARGET_OWNER_DEFAULT;
-
-            await redactAccessCodeInIssueBody(accessCode);
 
             if (!actor || actor.endsWith("[bot]")) {
               await addLabels(["request-rejected"]);
@@ -160,6 +127,35 @@ jobs:
               await closeIssue();
               return;
             }
+
+            const desiredTitle = `request assignment for ${actor}`;
+            if ((issue.title || "") !== desiredTitle) {
+              await github.rest.issues.update({
+                owner: repoOwner,
+                repo: repoName,
+                issue_number: issueNumber,
+                title: desiredTitle,
+              });
+            }
+
+            const accessCode = getField("Access code");
+            const repoTarget = getField("repoName");
+            const classroom = getField("Classroom");
+            const fullName = getField("Full name");
+            const email = getField("Email").toLowerCase();
+
+            await redactAccessCodeInIssueBody(accessCode);
+
+            const parts = repoTarget.split("/").map((v) => v.trim()).filter(Boolean);
+            if (parts.length !== 2) {
+              await addLabels(["request-rejected"]);
+              await issueComment("Request rejected: repoName must be in owner/prefix format.");
+              await closeIssue();
+              return;
+            }
+
+            const targetOwner = parts[0];
+            const selectedPrefix = parts[1];
 
             const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRe.test(email)) {
@@ -177,20 +173,10 @@ jobs:
               return;
             }
 
-            if (assignment !== "final" && assignment !== "final-second") {
+            const prefixRe = /^[a-z0-9._-]{2,80}$/;
+            if (!selectedPrefix || !prefixRe.test(selectedPrefix)) {
               await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: assignment must be final or final-second.");
-              await closeIssue();
-              return;
-            }
-
-            const selectedPrefix = assignment === "final"
-              ? (REPO_PREFIX_FINAL || REPO_PREFIX)
-              : (REPO_PREFIX_FINAL_SECOND || REPO_PREFIX);
-
-            if (!selectedPrefix) {
-              await addLabels(["request-rejected"]);
-              await issueComment("Request rejected: prefix for requested assignment is not configured.");
+              await issueComment("Request rejected: invalid repository prefix format in repoName.");
               await closeIssue();
               return;
             }
@@ -341,8 +327,8 @@ jobs:
               "",
               `- ${statusLine}`,
               `- Repository: ${targetUrl}`,
-              `- Organization/owner: ${targetOwner}`,
-              `- Assignment: ${assignment}`,
+              `- Target owner: ${targetOwner}`,
+              `- Prefix: ${selectedPrefix}`,
               `- Classroom: ${classroom}`,
               `- Name: ${fullName}`,
               `- Email: ${email}`,
