@@ -16,6 +16,10 @@ jobs:
   process-request:
     if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### repoName')
     runs-on: ubuntu-latest
+    env:
+      GMAIL_SMTP_USERNAME: ${{ secrets.GMAIL_SMTP_USERNAME }}
+      GMAIL_SMTP_APP_PASSWORD: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
+      GMAIL_TO: ${{ secrets.GMAIL_TO }}
     steps:
       - name: Validate request and provision repo
         id: intake
@@ -422,11 +426,7 @@ jobs:
 
       - name: Normalize Gmail SMTP values
         id: gmail
-        if: always() && steps.intake.outputs.send_alert == 'true'
-        env:
-          GMAIL_SMTP_USERNAME: ${{ secrets.GMAIL_SMTP_USERNAME }}
-          GMAIL_SMTP_APP_PASSWORD: ${{ secrets.GMAIL_SMTP_APP_PASSWORD }}
-          GMAIL_TO: ${{ secrets.GMAIL_TO }}
+        if: always() && steps.intake.outputs.send_alert == 'true' && env.GMAIL_SMTP_USERNAME != '' && env.GMAIL_SMTP_APP_PASSWORD != '' && env.GMAIL_TO != ''
         run: |
           username="$(printf '%s' "$GMAIL_SMTP_USERNAME" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
           to="$(printf '%s' "$GMAIL_TO" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
