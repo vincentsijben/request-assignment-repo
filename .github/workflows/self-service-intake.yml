@@ -355,20 +355,10 @@ jobs:
               permission: "push",
             });
 
-            const statusLine = exists ? "Repository already existed. Access was refreshed." : "Repository created and access granted.";
             const body = [
-              `Request processed for @${actor}.`,
+              "Repository created and access granted.",
               "",
-              `- ${statusLine}`,
-              `- Repository: ${targetUrl}`,
-              `- Target owner: ${targetOwner}`,
-              `- Prefix: ${selectedPrefix}`,
-              `- Template source: ${(TEMPLATE_OWNER || targetOwner)}/${(TEMPLATE_REPO || `${selectedPrefix}startercode`)}`,
-              `- Classroom: ${classroom}`,
-              `- Name: ${fullName}`,
-              `- Email: ${email}`,
-              "",
-              `@${OWNER_TO_NOTIFY} action completed.`,
+              `${targetUrl}`,
             ].join("\n");
 
             await addLabels(["request-processed"]);
