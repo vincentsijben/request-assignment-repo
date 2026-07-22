@@ -15,7 +15,7 @@ Students submit one Issue Form. A GitHub Action validates the request and create
   - email format and school domain (`@zuyd.nl` by default)
   - account age / request rate limits (anti-abuse)
 3. Workflow creates the target repo from template `<owner>/<prefix>-startercode` when missing.
-4. Workflow invites/adds the student GitHub account with push access.
+4. Workflow invites/adds the student GitHub account with maintain access.
 5. Workflow comments the result in the issue and tags the owner, so you get a GitHub notification.
 6. Issue template assigns the repository owner on creation, and workflow reinforces assignment for extra visibility.
 

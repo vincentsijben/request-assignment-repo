@@ -12,10 +12,8 @@ body:
         Use this form to request your assignment repository.
 
         What happens after you submit:
-        - Your request is validated (access code, school email, classroom, and Repository format).
-        - If valid, your repository is created (or existing access is refreshed) and you get access.
-        - This issue receives a confirmation or rejection message with next steps.
-        - Updates are not instant; wait a few seconds up to about one minute for the workflow to post the result.
+        - If your request is valid, your repository is created and you get access.
+        - This issue receives a confirmation or rejection message with next steps (refresh the page after a minute if nothing shows up).
 
         Fill in all fields. Your GitHub username is detected automatically from your account.
 

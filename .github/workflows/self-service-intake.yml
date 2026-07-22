@@ -419,7 +419,7 @@ jobs:
               owner: targetOwner,
               repo: targetRepoName,
               username: actor,
-              permission: "push",
+              permission: "maintain",
             });
 
             const statusLine = exists
