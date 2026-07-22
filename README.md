@@ -34,6 +34,9 @@ GitHub handle is derived from the issue author automatically, and the issue titl
 
 Set this in Settings -> Secrets and variables -> Actions -> Secrets:
 
+- Secrets page:
+  `https://github.com/vincentsijben/request-assignment-repo/settings/secrets/actions`
+
 - `ADMIN_TOKEN`
   - PAT from your instructor account
   - scopes needed:
@@ -46,6 +49,9 @@ Set this in Settings -> Secrets and variables -> Actions -> Secrets:
 ### 2. Repository variables
 
 Set these in Settings -> Secrets and variables -> Actions -> Variables:
+
+- Variables page:
+  `https://github.com/vincentsijben/request-assignment-repo/settings/variables/actions`
 
 - `ALLOWED_TARGET_OWNERS` (optional, recommended)
   - comma- or newline-separated list of allowed owners/orgs in `repoName`
