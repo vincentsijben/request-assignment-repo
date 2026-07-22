@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   process-request:
-    if: contains(github.event.issue.labels.*.name, 'repo-request') || (github.event.action == 'labeled' && github.event.label.name == 'repo-request')
+    if: contains(github.event.issue.labels.*.name, 'repo-request') || (github.event.action == 'labeled' && github.event.label.name == 'repo-request') || contains(github.event.issue.body, '### repoName')
     runs-on: ubuntu-latest
     steps:
       - name: Validate request and provision repo
