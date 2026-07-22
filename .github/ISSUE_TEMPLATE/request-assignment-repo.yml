@@ -9,6 +9,13 @@ body:
   - type: markdown
     attributes:
       value: |
+        Use this form to request your assignment repository.
+
+        What happens after you submit:
+        - Your request is validated (access code, school email, classroom, and repoName format).
+        - If valid, your repository is created (or existing access is refreshed) and you get push access.
+        - The issue receives a confirmation or rejection message with next steps.
+
         Fill in all fields. Your GitHub username is detected automatically from your account.
 
   - type: input
