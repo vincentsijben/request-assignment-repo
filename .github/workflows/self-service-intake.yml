@@ -33,7 +33,7 @@ jobs:
           REQUEST_CODE: ${{ secrets.REQUEST_CODE }}
           OWNER_TO_NOTIFY: ${{ github.repository_owner }}
         with:
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.ADMIN_TOKEN || github.token }}
           script: |
             const issue = context.payload.issue;
             const issueNumber = issue.number;
@@ -54,8 +54,6 @@ jobs:
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
-            const { getOctokit } = require("@actions/github");
-            const adminGithub = ADMIN_TOKEN ? getOctokit(ADMIN_TOKEN) : null;
 
             function sanitizeRepoPart(value) {
               return String(value || "")
@@ -225,7 +223,7 @@ jobs:
               return;
             }
 
-            if (!adminGithub) {
+            if (!ADMIN_TOKEN) {
               await rejectAndClose("Request rejected: repository provisioning is not configured correctly. ADMIN_TOKEN is missing.", ["request-rejected", "configuration-error"]);
               return;
             }
@@ -264,7 +262,7 @@ jobs:
 
             let exists = true;
             try {
-              await adminGithub.rest.repos.get({ owner: targetOwner, repo: targetRepoName });
+              await github.rest.repos.get({ owner: targetOwner, repo: targetRepoName });
             } catch (error) {
               if (error.status === 404) {
                 exists = false;
@@ -281,7 +279,7 @@ jobs:
 
               if (TEMPLATE_REPO) {
                 const templateOwner = TEMPLATE_OWNER || targetOwner;
-                await adminGithub.rest.repos.createUsingTemplate({
+                await github.rest.repos.createUsingTemplate({
                   template_owner: templateOwner,
                   template_repo: TEMPLATE_REPO,
                   owner: targetOwner,
@@ -292,14 +290,14 @@ jobs:
                 });
               } else {
                 if (targetOwner.toLowerCase() === user.data.login.toLowerCase()) {
-                  await adminGithub.rest.repos.createForAuthenticatedUser({
+                  await github.rest.repos.createForAuthenticatedUser({
                     name: targetRepoName,
                     private: privateRepo,
                     auto_init: true,
                     description,
                   });
                 } else {
-                  await adminGithub.rest.repos.createInOrg({
+                  await github.rest.repos.createInOrg({
                     org: targetOwner,
                     name: targetRepoName,
                     private: privateRepo,
@@ -310,7 +308,7 @@ jobs:
             }
 
             // Ensure student has push access.
-            await adminGithub.rest.repos.addCollaborator({
+            await github.rest.repos.addCollaborator({
               owner: targetOwner,
               repo: targetRepoName,
               username: actor,
