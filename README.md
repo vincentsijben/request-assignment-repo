@@ -79,6 +79,20 @@ GitHub Actions cannot reliably send custom email without external services.
 
 This setup posts a result comment and mentions `@<repo-owner>` in GitHub for both successful and rejected requests, which triggers GitHub notifications.
 
+Optional: Gmail SMTP alert notifications can also be sent for each processed issue. The email includes submitted data, the issue reply text, and a direct issue URL.
+
+### Gmail SMTP setup
+
+1. Create an App Password (do not use your normal Gmail password).
+2. In Google Account, go to Security: <https://myaccount.google.com/security>
+3. Open App Passwords: <https://myaccount.google.com/apppasswords>
+4. Create a new app password (name it something like `GitHub Actions Intake`).
+5. Copy the 16-character password once. Save it temporarily; Google will not show it again.
+6. Add GitHub repository secrets. In your repo, open Settings -> Secrets and variables -> Actions -> New repository secret, then add:
+7. `GMAIL_SMTP_USERNAME` = `your-gmail@example.com`
+8. `GMAIL_SMTP_APP_PASSWORD` = the 16-char app password from Google
+9. `GMAIL_TO` = `alerts@example.com`
+
 ## Moodle link
 
 Share this URL in Moodle:
