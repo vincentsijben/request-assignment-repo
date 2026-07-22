@@ -54,6 +54,7 @@ jobs:
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
+            const REDACTED_ACCESS_CODE = "[REDACTED]";
 
             function sanitizeRepoPart(value) {
               return String(value || "")
@@ -114,8 +115,10 @@ jobs:
 
             async function redactAccessCodeInIssueBody(accessCode) {
               if (!accessCode) return;
-              const escaped = escapeRegExp(accessCode);
-              const updated = issueBody.replace(new RegExp(escaped, "g"), "[REDACTED]");
+              const updated = issueBody.replace(
+                /(###\s*Access code\s*\n+)([\s\S]*?)(?=\n###\s|$)/i,
+                `$1${REDACTED_ACCESS_CODE}`
+              );
               if (updated !== issueBody) {
                 await github.rest.issues.update({
                   owner: repoOwner,
@@ -146,7 +149,8 @@ jobs:
               });
             }
 
-            const accessCode = getField("Access code");
+            const enteredAccessCode = getField("Access code");
+            const accessCode = enteredAccessCode === REDACTED_ACCESS_CODE ? REQUEST_CODE : enteredAccessCode;
             const repoTarget = getField("repoName");
             const classroom = getField("Classroom");
             const fullName = getField("Full name");
@@ -156,8 +160,6 @@ jobs:
               await rejectAndClose("Request rejected: please enter your full name (first and last name).");
               return;
             }
-
-            await redactAccessCodeInIssueBody(accessCode);
 
             const parts = repoTarget.split("/").map((v) => v.trim()).filter(Boolean);
             if (parts.length !== 2) {
@@ -221,6 +223,10 @@ jobs:
             if (accessCode !== REQUEST_CODE) {
               await rejectAndClose("Request rejected: invalid access code.", ["request-rejected", "invalid-code"]);
               return;
+            }
+
+            if (enteredAccessCode !== REDACTED_ACCESS_CODE) {
+              await redactAccessCodeInIssueBody(enteredAccessCode);
             }
 
             if (!ADMIN_TOKEN) {
