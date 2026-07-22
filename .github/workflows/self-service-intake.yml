@@ -96,6 +96,19 @@ jobs:
               });
             }
 
+            async function assignOwner() {
+              try {
+                await github.rest.issues.addAssignees({
+                  owner: repoOwner,
+                  repo: repoName,
+                  issue_number: issueNumber,
+                  assignees: [OWNER_TO_NOTIFY],
+                });
+              } catch {
+                // Do not fail intake if assignment is unavailable.
+              }
+            }
+
             async function rejectAndClose(message, labels = ["request-rejected"]) {
               await addLabels(labels);
               await issueComment([message, "", `@${OWNER_TO_NOTIFY} action completed.`].join("\n"));
@@ -141,6 +154,8 @@ jobs:
               core.setFailed("Missing secret REQUEST_CODE.");
               return;
             }
+
+            await assignOwner();
 
             if (!actor || actor.endsWith("[bot]")) {
               await rejectAndClose("Request rejected: bot or invalid GitHub account.");

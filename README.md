@@ -17,6 +17,7 @@ Students submit one Issue Form. A GitHub Action validates the request and create
 3. Workflow creates the target repo from template `<owner>/<prefix>startercode` when missing.
 4. Workflow invites/adds the student GitHub account with push access.
 5. Workflow comments the result in the issue and tags the owner, so you get a GitHub notification.
+6. Workflow auto-assigns the issue to the repository owner for extra visibility.
 
 ## Student fields
 
