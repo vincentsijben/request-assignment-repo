@@ -2,7 +2,7 @@ name: Self-Service Repo Intake
 
 on:
   issues:
-    types: [opened, reopened, labeled]
+    types: [opened, reopened]
 
 permissions:
   contents: read
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   process-request:
-    if: contains(github.event.issue.labels.*.name, 'repo-request') || (github.event.action == 'labeled' && github.event.label.name == 'repo-request') || contains(github.event.issue.body, '### repoName')
+    if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### repoName')
     runs-on: ubuntu-latest
     steps:
       - name: Validate request and provision repo
@@ -55,6 +55,14 @@ jobs:
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
             const REDACTED_ACCESS_CODE = "[REDACTED]";
+
+            const alreadyProcessed = (issue.labels || []).some((label) => {
+              const name = typeof label === "string" ? label : label.name;
+              return String(name || "").toLowerCase() === "request-processed";
+            });
+            if (alreadyProcessed) {
+              return;
+            }
 
             function sanitizeRepoPart(value) {
               return String(value || "")
