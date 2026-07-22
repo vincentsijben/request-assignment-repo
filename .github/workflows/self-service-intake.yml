@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   process-request:
-    if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### repoName')
+    if: contains(github.event.issue.labels.*.name, 'repo-request') || contains(github.event.issue.body, '### Repository') || contains(github.event.issue.body, '### repoName')
     runs-on: ubuntu-latest
     env:
       GMAIL_SMTP_USERNAME: ${{ secrets.GMAIL_SMTP_USERNAME }}
@@ -85,7 +85,7 @@ jobs:
                 `- Full name: ${fullName || "(empty)"}`,
                 `- Email: ${email || "(empty)"}`,
                 `- Classroom: ${classroom || "(empty)"}`,
-                `- repoName: ${repoTarget || "(empty)"}`,
+                `- Repository: ${repoTarget || "(empty)"}`,
                 `- Access code: ${REDACTED_ACCESS_CODE}`,
                 "",
                 "Issue reply:",
@@ -163,7 +163,7 @@ jobs:
               const retryHelp = [
                 "How to retry:",
                 "1. Open this issue and click Edit.",
-                "2. Update the incorrect values in the first form block (full name, email, classroom, repoName, or access code).",
+                "2. Update the incorrect values in the first form block (full name, email, classroom, Repository, or access code).",
                 "3. Save your changes.",
                 "4. Re-open this issue to run validation again.",
               ].join("\n");
@@ -214,7 +214,7 @@ jobs:
             fullName = getField("Full name");
             email = getField("Email").toLowerCase();
             classroom = getField("Classroom");
-            repoTarget = getField("repoName");
+            repoTarget = getField("Repository") || getField("repoName");
 
             if (!VALID_REQUEST_CODES.length) {
               failAndNotify("Missing secret REQUEST_CODE.");
@@ -250,7 +250,7 @@ jobs:
 
             const parts = repoTarget.split("/").map((v) => v.trim()).filter(Boolean);
             if (parts.length !== 2) {
-              await rejectAndClose("Request rejected: repoName must be in owner/prefix format.");
+              await rejectAndClose("Request rejected: Repository must be in owner/prefix format.");
               return;
             }
 
@@ -271,7 +271,7 @@ jobs:
 
             const prefixRe = /^[a-z0-9._-]{2,80}$/;
             if (!selectedPrefix || !prefixRe.test(selectedPrefix)) {
-              await rejectAndClose("Request rejected: invalid repository prefix format in repoName.");
+              await rejectAndClose("Request rejected: invalid Repository format.");
               return;
             }
 
@@ -363,7 +363,8 @@ jobs:
               return;
             }
 
-            const targetRepoName = `${selectedPrefix}${handlePart}`;
+            const normalizedPrefix = selectedPrefix.endsWith("-") ? selectedPrefix : `${selectedPrefix}-`;
+            const targetRepoName = `${normalizedPrefix}${handlePart}`;
 
             let exists = true;
             try {
@@ -382,7 +383,7 @@ jobs:
               const description = `Assignment repository for ${fullName} (${classroom})`;
               const privateRepo = REPO_VISIBILITY !== "public";
               const templateOwner = TEMPLATE_OWNER || targetOwner;
-              const templateRepoName = TEMPLATE_REPO || `${selectedPrefix}startercode`;
+              const templateRepoName = TEMPLATE_REPO || `${normalizedPrefix}startercode`;
 
               try {
                 await github.rest.repos.createUsingTemplate({
@@ -397,14 +398,14 @@ jobs:
               } catch (error) {
                 if (error.status === 404) {
                   await rejectAndClose(
-                    `Request rejected: template repository ${templateOwner}/${templateRepoName} was not found.`,
+                    "Request rejected: repository value is incorrect. Please check Repository and try again.",
                     ["request-rejected", "template-missing"]
                   );
                   return;
                 }
                 if (error.status === 403) {
                   await rejectAndClose(
-                    `Request rejected: no permission to use template repository ${templateOwner}/${templateRepoName}.`,
+                    "Request rejected: repository value is incorrect. Please check Repository and try again.",
                     ["request-rejected", "template-no-access"]
                   );
                   return;

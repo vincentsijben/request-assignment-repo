@@ -12,7 +12,7 @@ body:
         Use this form to request your assignment repository.
 
         What happens after you submit:
-        - Your request is validated (access code, school email, classroom, and repoName format).
+        - Your request is validated (access code, school email, classroom, and Repository format).
         - If valid, your repository is created (or existing access is refreshed) and you get access.
         - This issue receives a confirmation or rejection message with next steps.
         - Updates are not instant; wait a few seconds up to about one minute for the workflow to post the result.
@@ -49,9 +49,9 @@ body:
   - type: input
     id: repo_name
     attributes:
-      label: repoName
-      description: Target as owner/prefix, for example mia-mmt1-2627/final-
-      placeholder: mia-mmt1-2627/final-
+      label: Repository
+      description: Target as owner/prefix, for example mia-mmt4-2526/final or mia-mmt4-2526/final-
+      placeholder: mia-mmt4-2526/final
     validations:
       required: true
 

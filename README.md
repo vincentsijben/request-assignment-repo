@@ -9,12 +9,12 @@ Students submit one Issue Form. A GitHub Action validates the request and create
 1. Student opens a single public URL and submits the issue form.
 2. Workflow validates:
   - access code (shared in Moodle)
-  - repoName target format (`owner/prefix`)
+  - Repository target format (`owner/prefix`)
   - organization/owner allowlist (optional)
   - classroom format (optional regex)
   - email format and school domain (`@zuyd.nl` by default)
   - account age / request rate limits (anti-abuse)
-3. Workflow creates the target repo from template `<owner>/<prefix>startercode` when missing.
+3. Workflow creates the target repo from template `<owner>/<prefix>-startercode` when missing.
 4. Workflow invites/adds the student GitHub account with push access.
 5. Workflow comments the result in the issue and tags the owner, so you get a GitHub notification.
 6. Issue template assigns the repository owner on creation, and workflow reinforces assignment for extra visibility.
@@ -24,7 +24,7 @@ Students submit one Issue Form. A GitHub Action validates the request and create
 - Full name
 - Email address
 - Classroom
-- repoName (`owner/prefix`, for example `mia-mmt1-2627/final-`)
+- Repository (`owner/prefix`, for example `mia-mmt4-2526/final` or `mia-mmt4-2526/final-`)
 - Access code
 
 GitHub handle is derived from the issue author automatically, and the issue title is normalized to `request assignment for <github-handle>`.
@@ -56,16 +56,16 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
   <https://github.com/vincentsijben/request-assignment-repo/settings/variables/actions>
 
 - `ALLOWED_TARGET_OWNERS` (optional, recommended)
-  - comma- or newline-separated list of allowed owners/orgs in `repoName`
+  - comma- or newline-separated list of allowed owners/orgs in `Repository`
   - example: `semester-1-org,semester-2-org,instructor-account`
 - `REPO_VISIBILITY` (optional)
   - `private` (default) or `public`
 - `TEMPLATE_OWNER` (optional)
   - override template owner
-  - default: same owner as `repoName`
+  - default: same owner as `Repository`
 - `TEMPLATE_REPO` (optional)
   - override template repo name
-  - default: `<prefix>startercode` derived from `repoName`
+  - default: `<prefix>-startercode` derived from `Repository`
 - `ALLOWED_EMAIL_DOMAIN` (optional)
   - default is `zuyd.nl`
   - set this only if you want a different required domain
@@ -112,7 +112,7 @@ You can prefill fields in Moodle by appending query parameters that match form I
 - Rejects bot accounts
 - Access code check against secret
 - Full name check (must include at least first and last name)
-- repoName format validation (`owner/prefix`)
+- Repository format validation (`owner/prefix`)
 - Organization/owner allowlist validation
 - Template repository existence and access check
 - School email check (`@zuyd.nl` by default) and classroom validation
