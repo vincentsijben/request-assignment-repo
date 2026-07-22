@@ -69,7 +69,7 @@ Set these in Settings -> Secrets and variables -> Actions -> Variables:
   - set this only if you want a different required domain
 - `ALLOWED_CLASSROOM_REGEX` (optional)
   - example: `^CMD1[A-C]$`
-- `MAX_REQUESTS_PER_DAY` (optional, default `3`)
+- `MAX_REQUESTS_PER_DAY` (optional, default `10`)
 - `MIN_ACCOUNT_AGE_DAYS` (optional, default `3`)
 
 ## Notifications

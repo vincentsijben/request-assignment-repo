@@ -50,7 +50,7 @@ jobs:
             const TEMPLATE_REPO = (process.env.TEMPLATE_REPO || "").trim();
             const ALLOWED_EMAIL_DOMAIN = (process.env.ALLOWED_EMAIL_DOMAIN || "zuyd.nl").trim().toLowerCase();
             const ALLOWED_CLASSROOM_REGEX = (process.env.ALLOWED_CLASSROOM_REGEX || "").trim();
-            const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "3");
+            const MAX_REQUESTS_PER_DAY = Number(process.env.MAX_REQUESTS_PER_DAY || "10");
             const MIN_ACCOUNT_AGE_DAYS = Number(process.env.MIN_ACCOUNT_AGE_DAYS || "3");
             const REQUEST_CODE = (process.env.REQUEST_CODE || "").trim();
             const OWNER_TO_NOTIFY = (process.env.OWNER_TO_NOTIFY || repoOwner).trim();
@@ -244,7 +244,17 @@ jobs:
               since,
               per_page: 100,
             });
-            if (sameUserIssues.length > Math.max(1, MAX_REQUESTS_PER_DAY)) {
+            const requestIssues = sameUserIssues.filter((item) => {
+              if (item.pull_request) return false;
+              const labels = item.labels || [];
+              return labels.some((label) => {
+                const name = typeof label === "string" ? label : label.name;
+                return String(name || "").toLowerCase() === "repo-request";
+              });
+            });
+            const uniqueIssueNumbers = new Set(requestIssues.map((item) => item.number));
+            uniqueIssueNumbers.delete(issueNumber);
+            if (uniqueIssueNumbers.size >= Math.max(1, MAX_REQUESTS_PER_DAY)) {
               await rejectAndClose("Request rejected: too many requests in the last 24 hours.", ["request-rejected", "rate-limited"]);
               return;
             }
