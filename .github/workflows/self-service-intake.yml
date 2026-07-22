@@ -282,34 +282,35 @@ jobs:
             if (!exists) {
               const description = `Assignment repository for ${fullName} (${classroom})`;
               const privateRepo = REPO_VISIBILITY !== "public";
+              const templateOwner = TEMPLATE_OWNER || targetOwner;
+              const templateRepoName = TEMPLATE_REPO || `${selectedPrefix}startercode`;
 
-              if (TEMPLATE_REPO) {
-                const templateOwner = TEMPLATE_OWNER || targetOwner;
+              try {
                 await github.rest.repos.createUsingTemplate({
                   template_owner: templateOwner,
-                  template_repo: TEMPLATE_REPO,
+                  template_repo: templateRepoName,
                   owner: targetOwner,
                   name: targetRepoName,
                   private: privateRepo,
                   include_all_branches: false,
                   description,
                 });
-              } else {
-                if (targetOwner.toLowerCase() === user.data.login.toLowerCase()) {
-                  await github.rest.repos.createForAuthenticatedUser({
-                    name: targetRepoName,
-                    private: privateRepo,
-                    auto_init: true,
-                    description,
-                  });
-                } else {
-                  await github.rest.repos.createInOrg({
-                    org: targetOwner,
-                    name: targetRepoName,
-                    private: privateRepo,
-                    description,
-                  });
+              } catch (error) {
+                if (error.status === 404) {
+                  await rejectAndClose(
+                    `Request rejected: template repository ${templateOwner}/${templateRepoName} was not found.`,
+                    ["request-rejected", "template-missing"]
+                  );
+                  return;
                 }
+                if (error.status === 403) {
+                  await rejectAndClose(
+                    `Request rejected: no permission to use template repository ${templateOwner}/${templateRepoName}.`,
+                    ["request-rejected", "template-no-access"]
+                  );
+                  return;
+                }
+                throw error;
               }
             }
 
@@ -329,6 +330,7 @@ jobs:
               `- Repository: ${targetUrl}`,
               `- Target owner: ${targetOwner}`,
               `- Prefix: ${selectedPrefix}`,
+              `- Template source: ${(TEMPLATE_OWNER || targetOwner)}/${(TEMPLATE_REPO || `${selectedPrefix}startercode`)}`,
               `- Classroom: ${classroom}`,
               `- Name: ${fullName}`,
               `- Email: ${email}`,
