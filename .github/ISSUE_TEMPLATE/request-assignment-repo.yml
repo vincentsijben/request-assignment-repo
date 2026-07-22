@@ -1,5 +1,6 @@
 name: Request Assignment Repository
 description: Request a private assignment repository
+title: "request assignment repo"
 labels:
   - repo-request
 body:
@@ -22,7 +23,7 @@ body:
     attributes:
       label: Email
       description: School email address
-      placeholder: student@school.edu
+      placeholder: 123456sijben@zuyd.nl
     validations:
       required: true
 
